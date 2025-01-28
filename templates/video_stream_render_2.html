@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обработанный видеопоток</title>
+</head>
+
+<body>
+    <h1>Черно-белый эффект</h1>
+    <video id="video" autoplay playsinline></video>
+    <!-- <video id="video" autoplay playsinline style="display:none"></video> -->
+    <!-- <video id="video" autoplay playsinline style="visibility:hidden"></video> -->
+    <canvas id="canvas"></canvas>
+    <img id="processed" />
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const processed = document.getElementById('processed');
+        const context = canvas.getContext('2d');
+
+        // Получаем доступ к камере
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { exact: "environment" } // Указывает на использование задней камеры
+            }
+        }).then(stream => {
+            video.srcObject = stream;
+
+            video.addEventListener('play', () => {
+                setInterval(() => {
+                    // Рисуем кадр на canvas
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    // context.clearRect(0, 0, canvas.width, canvas.height); //
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Отправляем кадр на сервер
+                    canvas.toBlob(blob => {
+                        fetch('/', {
+                            method: 'POST',
+                            body: blob
+                        }).then(response => response.blob())
+                            .then(blob => {
+                                // Получаем обработанное изображение
+                                const url = URL.createObjectURL(blob);
+                                processed.src = url;
+                            });
+                    }, 'image/jpeg');
+                }, 100); // Отправка кадров каждые 100ms
+            });
+        }).catch(error => {
+            console.error('Ошибка доступа к камере:', error);
+        });
+    </script>
+</body>
+
+</html>

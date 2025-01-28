@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Stream</title>
+</head>
+
+<body>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <img id="processed" />
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const processed = document.getElementById('processed');
+        const context = canvas.getContext('2d');
+
+        // Получаем доступ к камере { video: true }
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { exact: "environment" } // Указывает на использование задней камеры
+            }
+        }).then(stream => {
+            video.srcObject = stream;
+
+            video.addEventListener('play', () => {
+                setInterval(() => {
+                    // Рисуем кадр на canvas
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Отправляем кадр на сервер
+                    canvas.toBlob(blob => {
+                        fetch('/', {
+                            method: 'POST',
+                            body: blob
+                        }).then(response => response.blob())
+                            .then(blob => {
+                                // Получаем обработанное изображение
+                                const url = URL.createObjectURL(blob);
+                                processed.src = url;
+                            });
+                    }, 'image/jpeg');
+                }, 100); // Отправка кадров каждые 100ms
+            });
+        });
+    </script>
+</body>
+
+</html>
